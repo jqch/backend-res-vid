@@ -159,4 +159,64 @@ class UserController extends Controller
 
         return $helpers->json($data);
     }
+
+    public function uploadImageAction(Request $request)
+    {
+        $helpers = $this->get('app.helpers');
+
+        $hash = $request->get('authorization', null);
+        $auth_check = $helpers->authCheck($hash);
+
+        if ($auth_check) {
+            $identity = $helpers->authCheck($hash, true);            
+
+            $em = $this->getDoctrine()->getManager();
+            $user = $em->getRepository('BackendBundle:User')->find($identity->sub);
+
+            // upload file
+            $file = $request->files->get('image');
+
+            if (!empty($file) && $file != null) {
+                $ext = $file->guessExtension();
+
+                if ($ext == "jpeg" || $ext == "jpg" || $ext == "png" || $ext == "gif") {
+                    # code...
+                    $file_name = time().".".$ext;
+                    $file->move("uploads/users", $file_name);
+
+                    $user->setImage($file_name);
+                    $em->persist($user);
+                    $em->flush();
+
+                    $data = array(
+                        "status" => "success",
+                        "code"   => 200,
+                        "msg"    => "Image for user upload success !!!"
+                    );
+                }else{
+                    $data = array(
+                        "status" => "error",
+                        "code"   => 400,
+                        "msg"    => "File not valid !!!"
+                    );
+                }
+
+            }else{
+                $data = array(
+                    "status" => "error",
+                    "code"   => 400,
+                    "msg"    => "Image not uploaded !!!"
+                );
+            }
+
+        }else{
+            $data = array(
+                "status" => "error",
+                "code"   => 400,
+                "msg"    => "Authorization not valid !!"
+            );
+        }
+
+        return $helpers->json($data);
+    }
 }
